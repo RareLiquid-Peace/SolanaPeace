@@ -49,6 +49,14 @@ export async function checkRug(mintAddress) {
     if (response.data) {
       const report = response.data;
 
+      // ✅ GOAT FILTER INTEGRATION
+      if (!advancedCheckRug(report)) {
+        await logEvent("WARN", "Vetting failed: Failed GOAT filters", {
+          mint: mintAddress,
+        });
+        return null;
+      }
+
       if (report.token?.freezeAuthority) {
         await logEvent("WARN", `Vetting failed: Token is freezable.`, {
           mint: mintAddress,
@@ -119,4 +127,39 @@ export async function checkRug(mintAddress) {
     });
     return null;
   }
+}
+
+// ✅ GOAT-Level Rug Filter (Risk-Free Mode)
+export function advancedCheckRug(report) {
+  if (report.token?.freezeAuthority || report.token?.mintAuthority) {
+    console.log("❌ Failed: Token is mintable or freezable");
+    return false;
+  }
+  if (report.totalMarketLiquidity < 1000 || report.totalMarketLiquidity > 50000) {
+    console.log("❌ Failed: Liquidity out of safe range");
+    return false;
+  }
+  if (report.simulationLoss > 25) {
+    console.log("❌ Failed: Simulation loss too high");
+    return false;
+  }
+  if (report.buyTax > 8 || report.sellTax > 8) {
+    console.log("❌ Failed: Tax too high");
+    return false;
+  }
+  if (report.ownerPercent > 5) {
+    console.log("❌ Failed: Owner holds >5%");
+    return false;
+  }
+  if (report.devWalletCount > 3) {
+    console.log("❌ Failed: Too many dev wallets");
+    return false;
+  }
+  if (report.lpLockDurationDays < 30) {
+    console.log("❌ Failed: LP not locked 30+ days");
+    return false;
+  }
+
+  console.log("✅ Passed all GOAT filters");
+  return true;
 }
