@@ -1,6 +1,7 @@
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import chalk from "chalk";
+import { sendTelegramMessage } from "./telegramService.js";
 
 let db;
 
@@ -14,7 +15,7 @@ const TRADE_TABLE_SCHEMA = `
         token_price_in_sol REAL NOT NULL,
         transaction_fee_sol REAL,
         signature TEXT,
-        status TEXT NOT NULL DEFAULT 'BOUGHT' -- BOUGHT, SOLD, SELL_FAILED
+        status TEXT NOT NULL DEFAULT 'BOUGHT'
     );
 `;
 
@@ -75,6 +76,8 @@ export async function logEvent(
     totalPnlUsd !== null ? ` | Total PnL: $${totalPnlUsd.toFixed(4)}` : "";
   const detailsString = details ? `\n${JSON.stringify(details, null, 2)}` : "";
 
+  const logLine = `[${level}] ${message}${pnlString}${detailsString}`;
+
   switch (level) {
     case "INFO":
       console.log(chalk.cyan(`[INFO] ${message}${pnlString}`), detailsString);
@@ -99,6 +102,12 @@ export async function logEvent(
       break;
     default:
       console.log(`[${level}] ${message}${pnlString}`, detailsString);
+  }
+
+  try {
+    await sendTelegramMessage(logLine);
+  } catch (err) {
+    console.error("Telegram send failed:", err.message);
   }
 
   const detailsJson = details ? JSON.stringify(details) : null;
