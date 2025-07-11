@@ -7,7 +7,6 @@ import {
   SOL_MINT,
   GLOBAL_STOP_LOSS_USD,
 } from "./config.js";
-import { shouldBuyToken } from "./services/geminiService.js";
 import {
   buyToken,
   monitorPortfolio,
@@ -33,9 +32,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function processNewLiquidityPool(transaction) {
   try {
-    if (getPortfolioSize() >= MAX_PORTFOLIO_SIZE) {
-      return;
-    }
+    if (getPortfolioSize() >= MAX_PORTFOLIO_SIZE) return;
 
     if (
       !transaction ||
@@ -51,49 +48,44 @@ async function processNewLiquidityPool(transaction) {
         tb.owner === "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1"
     );
     if (!newMintInfo) return;
-    const newMint = newMintInfo.mint;
 
+    const newMint = newMintInfo.mint;
     if (await hasBeenPurchased(newMint)) return;
 
     const metadata = await getTokenMetadata(newMint);
     if (!metadata) {
-      await logEvent(
-        "WARN",
-        `Could not fetch metadata for ${newMint}. Skipping.`
-      );
+      await logEvent("WARN", `No metadata found for ${newMint}. Skipping.`);
       return;
     }
 
     if (isBlacklisted(metadata.name, metadata.symbol)) {
       await logEvent(
         "WARN",
-        `Skipping blacklisted token: ${metadata.name} (${metadata.symbol})`
+        `Blacklisted token skipped: ${metadata.name} (${metadata.symbol})`
       );
       return;
     }
 
     await logEvent(
       "INFO",
-      `New token found: ${metadata.name} (${metadata.symbol}) | Mint: ${newMint}`
+      `🆕 New token found: ${metadata.name} (${metadata.symbol}) | Mint: ${newMint}`
     );
-    await sleep(500);
+    await sleep(500); // optional delay for safety
 
     const rugCheckReport = await checkRug(newMint);
     if (!rugCheckReport) {
       await logEvent("WARN", `Vetting failed for ${newMint}. Skipping.`);
       return;
     }
-    await buyToken(newMint, rugCheckReport.risk.level, metadata); // Pass metadata here
+
+    await buyToken(newMint, rugCheckReport.risk.level, metadata);
   } catch (error) {
-    await logEvent("ERROR", "Error processing new pool signature:", { error });
+    await logEvent("ERROR", "❌ Error in pool detection:", { error });
   }
 }
 
 async function monitorNewPools() {
-  await logEvent(
-    "INFO",
-    "Starting real-time log monitoring for new Raydium liquidity pools..."
-  );
+  await logEvent("INFO", "⏳ Monitoring new Raydium liquidity pools...");
   connection.onLogs(
     new PublicKey(RAYDIUM_LIQUIDITY_POOL_V4),
     async ({ logs, signature }) => {
@@ -110,7 +102,7 @@ async function monitorNewPools() {
         });
         await processNewLiquidityPool(tx);
       } catch (error) {
-        await logEvent("ERROR", "Failed to get parsed transaction", {
+        await logEvent("ERROR", "Failed to get parsed tx", {
           signature,
           error,
         });
@@ -124,8 +116,8 @@ function startHealthCheckServer() {
   app.get("/health", (req, res) => {
     res.status(200).send("OK");
   });
-  app.listen(process.env.PORT, () => {
-    logEvent("INFO", `Health check server started on port ${process.env.PORT}`);
+  app.listen(process.env.PORT || 3000, () => {
+    logEvent("INFO", `✅ Health check active on port ${process.env.PORT}`);
   });
 }
 
@@ -147,41 +139,32 @@ async function main() {
       buySignature: trade.signature,
     });
   }
-  await logEvent(
-    "INFO",
-    `Loaded ${portfolio.size} active/failed trades from database.`
-  );
+
+  await logEvent("INFO", `📊 Loaded ${portfolio.size} active trades.`);
 
   console.log(
     chalk.bold.magenta("====================================================")
   );
   console.log(
-    chalk.bold.magenta(
-      "      🤖 Advanced Solana AI Trading Bot Initialized 🤖      "
-    )
+    chalk.bold.magenta("   🚀 Solana AI Trading Bot GOAT Edition Launched 🚀 ")
   );
   console.log(
     chalk.bold.magenta("====================================================")
   );
-  await logEvent(
-    "INFO",
-    `Wallet Public Key: ${WALLET_KEYPAIR.publicKey.toBase58()}`
-  );
 
+  await logEvent("INFO", `Wallet: ${WALLET_KEYPAIR.publicKey.toBase58()}`);
   startHealthCheckServer();
   monitorNewPools();
 
   setInterval(async () => {
-    await logEvent("INFO", "Performing scheduled portfolio check...");
+    await logEvent("INFO", "📈 Running portfolio safety check...");
     await monitorPortfolio();
 
     const currentPnl = getTotalPnlUsd();
     if (currentPnl <= GLOBAL_STOP_LOSS_USD) {
-      await logEvent(
-        "ERROR",
-        "GLOBAL STOP-LOSS TRIGGERED! Shutting down bot.",
-        { totalPnlUsd: currentPnl }
-      );
+      await logEvent("ERROR", "🛑 GLOBAL STOP-LOSS TRIGGERED! BOT EXITING.", {
+        totalPnlUsd: currentPnl,
+      });
       process.exit(1);
     }
   }, 30000);

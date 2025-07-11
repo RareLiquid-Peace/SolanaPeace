@@ -1,4 +1,4 @@
-// config.js — Optimized for GOAT-Level 0.01 SOL Trading Strategy
+// config.js — GOAT-Level Config (Final Patched)
 
 import dotenv from "dotenv";
 import { Keypair } from "@solana/web3.js";
@@ -19,7 +19,7 @@ function loadEnvVariable(key, isSecret = false) {
 }
 
 // 🔐 API & Wallet
-export const GEMINI_API_KEY = loadEnvVariable("GEMINI_API_KEY", true);
+export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ""; // Optional
 export const RPC_URL = loadEnvVariable("RPC_URL");
 const privateKeyStr = loadEnvVariable("PRIVATE_KEY", true);
 let walletKeypair;
@@ -44,7 +44,14 @@ export const MAX_HOLDER_CONCENTRATION_PERCENT = parseFloat(
   loadEnvVariable("MAX_HOLDER_CONCENTRATION_PERCENT")
 );
 
-// 💸 Trade Sizing per Risk Level (optimized for 0.01 SOL total cap)
+// ✅ VETTING CONSTANTS REQUIRED FOR RUG CHECK
+export const MIN_LIQUIDITY_USD = parseFloat(process.env.MIN_LIQUIDITY_USD || "30000");
+export const MAX_LIQUIDITY_USD = parseFloat(process.env.MAX_LIQUIDITY_USD || "100000000");
+export const MIN_MARKET_CAP_USD = parseFloat(process.env.MIN_MARKET_CAP_USD || "50000");
+export const MIN_HOLDER_COUNT = parseInt(process.env.MIN_HOLDER_COUNT || "100");
+export const MAX_HOLDER_PERCENT = parseFloat(process.env.MAX_HOLDER_PERCENT || "20");
+
+// 💸 Trade Sizing per Risk Level
 export const TRADE_AMOUNTS = {
   GOOD: parseFloat(loadEnvVariable("TRADE_AMOUNT_SOL_GOOD")),
   WARNING: parseFloat(loadEnvVariable("TRADE_AMOUNT_SOL_WARNING")),
@@ -52,7 +59,7 @@ export const TRADE_AMOUNTS = {
 };
 
 // 🔧 Trading Settings
-export const SLIPPAGE_BPS = parseInt(loadEnvVariable("SLIPPAGE_BPS"), 10);
+export const SLIPPAGE_BPS = 300;
 export const JUPITER_PRE_QUOTE_DELAY_MS =
   parseInt(loadEnvVariable("JUPITER_PRE_QUOTE_DELAY_MS"), 10) || 0;
 
@@ -64,18 +71,7 @@ export const STALE_DANGER_COIN_MINUTES = parseInt(
   loadEnvVariable("STALE_DANGER_COIN_MINUTES"),
   10
 );
-export const MIN_LIQUIDITY_USD = parseFloat(
-  loadEnvVariable("MIN_LIQUIDITY_USD")
-);
-export const MAX_LIQUIDITY_USD = parseFloat(
-  loadEnvVariable("MAX_LIQUIDITY_USD")
-);
-export const MIN_MARKET_CAP_USD = parseFloat(
-  loadEnvVariable("MIN_MARKET_CAP_USD")
-);
-export const DEEP_LOSS_PERCENT_DANGER = parseFloat(
-  loadEnvVariable("DEEP_LOSS_PERCENT_DANGER")
-);
+export const DEEP_LOSS_PERCENT_DANGER = -10;
 export const GLOBAL_STOP_LOSS_USD = parseFloat(
   loadEnvVariable("GLOBAL_STOP_LOSS_USD")
 );
