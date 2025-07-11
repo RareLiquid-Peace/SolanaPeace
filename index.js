@@ -70,7 +70,7 @@ async function processNewLiquidityPool(transaction) {
       "INFO",
       `🆕 New token found: ${metadata.name} (${metadata.symbol}) | Mint: ${newMint}`
     );
-    await sleep(500); // optional delay for safety
+    await sleep(500);
 
     const rugCheckReport = await checkRug(newMint);
     if (!rugCheckReport) {
@@ -113,11 +113,10 @@ async function monitorNewPools() {
 }
 
 function startHealthCheckServer() {
-  app.get("/health", (req, res) => {
-    res.status(200).send("OK");
-  });
-  app.listen(process.env.PORT || 3000, () => {
-    logEvent("INFO", `✅ Health check active on port ${process.env.PORT}`);
+  const port = process.env.HEALTH_CHECK_PORT || 3000;
+  app.get("/health", (_, res) => res.status(200).send("OK"));
+  app.listen(port, () => {
+    logEvent("INFO", `✅ Health check active on port ${port}`);
   });
 }
 
